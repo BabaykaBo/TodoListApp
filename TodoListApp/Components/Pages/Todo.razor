@@ -6,17 +6,20 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using TodoListApp.Data
 @using TodoListApp.Models
+@using TodoListApp.Services
 
 @attribute [Authorize]
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation
+@inject ApplicationDbContext DbContext
 
 <h3>Todo (@todos.Count(todo => !todo.IsCompleted))</h3>
 
 <input @bind="newTodo" />
 <button @onclick="AddTodo">Add todo</button>
+<button @onclick="SaveAllTodos">Save All Todos</button>
 
 <ul>
     @foreach (var todo in todos)
@@ -26,24 +29,28 @@
             <input @bind="todo.Title" />
         </li>
     }
-</ul> 
+</ul>
 
 @code {
     private List<TodoItem> todos = new();
     string newTodo = "";
     private ApplicationUser? user;
 
+    private TodoService? todoService;
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var currentUser = authState.User;
+
+        todoService = new TodoService(DbContext, UserManager);
 
         if (currentUser != null && currentUser.Identity != null && currentUser.Identity.IsAuthenticated)
         {
             user = await UserManager.GetUserAsync(currentUser);
             if (user != null)
             {
-                // Load existing todos for the user from the database (not shown here)
+                todos = await todoService.GetUserTodoItemsAsync(user.Id);
             }
         }
         else
@@ -57,10 +64,23 @@
     {
         if (!string.IsNullOrWhiteSpace(newTodo) && user != null)
         {
-            todos.Add(new TodoItem { Title = newTodo, User = user, UserId = user.Id });
+            var newTodoItem = new TodoItem { Title = newTodo, User = user, UserId = user.Id };
+            todos.Add(newTodoItem);
             newTodo = string.Empty;
-
-            // Save the new todo to the database (not shown here)
         }
+    }
+
+    async void SaveAllTodos()
+    {
+        foreach (var todo in todos)
+        {
+            if (user != null && todoService != null)
+            {
+                await todoService.AddTodoItemAsync(todo, user.Id);
+            }
+        }
+
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+
     }
 }
