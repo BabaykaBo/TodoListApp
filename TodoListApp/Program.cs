@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using TodoListApp.Components;
 using TodoListApp.Components.Account;
 using TodoListApp.Data;
+using TodoListApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddScoped<TodoService>();
+
 
 builder.Services.AddAuthentication(options =>
     {
