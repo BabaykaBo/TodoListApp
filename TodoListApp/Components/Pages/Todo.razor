@@ -1,0 +1,66 @@
+@page "/todo"
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@using TodoListApp.Data
+@using TodoListApp.Models
+
+@attribute [Authorize]
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+
+<h3>Todo (@todos.Count(todo => !todo.IsCompleted))</h3>
+
+<input @bind="newTodo" />
+<button @onclick="AddTodo">Add todo</button>
+
+<ul>
+    @foreach (var todo in todos)
+    {
+        <li>
+            <input type="checkbox" @bind="todo.IsCompleted" />
+            <input @bind="todo.Title" />
+        </li>
+    }
+</ul> 
+
+@code {
+    private List<TodoItem> todos = new();
+    string newTodo = "";
+    private ApplicationUser? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = authState.User;
+
+        if (currentUser != null && currentUser.Identity != null && currentUser.Identity.IsAuthenticated)
+        {
+            user = await UserManager.GetUserAsync(currentUser);
+            if (user != null)
+            {
+                // Load existing todos for the user from the database (not shown here)
+            }
+        }
+        else
+        {
+            // Handle the case where the user is not authenticated
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    void AddTodo()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodo) && user != null)
+        {
+            todos.Add(new TodoItem { Title = newTodo, User = user, UserId = user.Id });
+            newTodo = string.Empty;
+
+            // Save the new todo to the database (not shown here)
+        }
+    }
+}
